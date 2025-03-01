@@ -2,6 +2,11 @@
 
 A lightweight, feature-rich HTTP request logging and dashboard package for Laravel.
 
+Images
+
+![Dashboard](https://github.com/mariojgt/magiclog/blob/main/art/image02.png)
+![Dashboard](https://github.com/mariojgt/magiclog/blob/main/art/image01.png)
+
 ## Features
 
 - 🚀 Lightweight and performant request logging
