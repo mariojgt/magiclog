@@ -60,6 +60,10 @@ Access the dashboard at `/request-logger` (requires authentication)
 
 Contributions are welcome! Please submit pull requests.
 
+## Performance
+
+This package is designed to be lightweight but we store the request data in the database so it can have an impact on the performance of your application. We recommend using this package for simple applications or simple api's.
+
 ## License
 
 MIT License
