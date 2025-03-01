@@ -1,0 +1,93 @@
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --background-light: #f4f6f7;
+    --text-dark: #2c3e50;
+}
+
+.request-logger-dashboard {
+    background-color: var(--background-light);
+    font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+.request-logger-dashboard .card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.request-logger-dashboard .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.request-logger-dashboard .table {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.request-logger-dashboard .table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.log-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.log-row:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.method-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.method-badge-get {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.method-badge-post {
+    background-color: #3498db;
+    color: white;
+}
+
+.method-badge-put {
+    background-color: #f39c12;
+    color: white;
+}
+
+.method-badge-delete {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.status-badge-success {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.status-badge-error {
+    background-color: #e74c3c;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .request-logger-dashboard .card-body {
+        padding: 1rem;
+    }
+}
