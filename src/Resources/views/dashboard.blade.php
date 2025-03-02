@@ -26,6 +26,12 @@
                         </button>
                     </div>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="actions d-flex">
+                        <a href="{{ route('request-logger.logs.index') }}" class="btn btn-primary">View
+                            All Logs</a>
+                    </div>
+                </div>
 
                 {{-- Quick Stats Cards --}}
                 <div class="row mb-4">
@@ -280,13 +286,36 @@
                         {{-- Pagination --}}
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <div>
-                                Showing {{ $logs->firstItem() ?? 0 }} to {{ $logs->lastItem() ?? 0 }} of
-                                {{ $logs->total() }} entries
+                                Showing {{ $logs->firstItem() ?? 0 }} to {{ $logs->lastItem() ?? 0 }} of {{ $logs->total() }} entries
                             </div>
                             <div>
-                                {{ $logs->appends(request()->except('page'))->links() }}
+                                <ul class="custom-pagination">
+                                    {{-- Previous Page Link --}}
+                                    @if ($logs->onFirstPage())
+                                        <li class="disabled"><span>«</span></li>
+                                    @else
+                                        <li><a href="{{ $logs->previousPageUrl() }}" rel="prev">«</a></li>
+                                    @endif
+
+                                    {{-- Pagination Elements --}}
+                                    @foreach ($logs->links()->elements[0] as $page => $url)
+                                        @if ($page == $logs->currentPage())
+                                            <li class="active"><span>{{ $page }}</span></li>
+                                        @else
+                                            <li><a href="{{ $url }}">{{ $page }}</a></li>
+                                        @endif
+                                    @endforeach
+
+                                    {{-- Next Page Link --}}
+                                    @if ($logs->hasMorePages())
+                                        <li><a href="{{ $logs->nextPageUrl() }}" rel="next">»</a></li>
+                                    @else
+                                        <li class="disabled"><span>»</span></li>
+                                    @endif
+                                </ul>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>

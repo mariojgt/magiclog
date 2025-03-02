@@ -1062,6 +1062,49 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .custom-pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            gap: 8px;
+        }
+
+        .custom-pagination li {
+            display: inline-block;
+        }
+
+        .custom-pagination li a,
+        .custom-pagination li span {
+            display: block;
+            padding: 8px 12px;
+            color: #ffffff;
+            background-color: #1a1a1a;
+            border: 2px solid #6a0dad;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .custom-pagination li a:hover {
+            background-color: #6a0dad;
+            color: #ffffff;
+        }
+
+        .custom-pagination li.active span {
+            background-color: #6a0dad;
+            color: #ffffff;
+            border-color: #ffffff;
+        }
+
+        .custom-pagination li.disabled span {
+            color: #555;
+            background-color: #333;
+            border-color: #444;
+            cursor: not-allowed;
+        }
+
     </style>
     @stack('styles')
 </head>

@@ -250,33 +250,43 @@
                             </div>
 
                             {{-- Pagination --}}
-                            <div class="d-flex justify-content-between align-items-center mt-4">
-                                <div>
-                                    Showing {{ count($logs) }} of {{ $total }} entries
-                                </div>
-                                <div>
-                                    <nav aria-label="Log pagination">
-                                        <ul class="pagination">
-                                            <li class="page-item {{ $currentPage == 1 ? 'disabled' : '' }}">
-                                                <a class="page-link"
-                                                    href="{{ route('request-logger.logs.index', array_merge(request()->all(), ['page' => max(1, $currentPage - 1)])) }}">Previous</a>
-                                            </li>
-
-                                            @for($i = max(1, $currentPage - 2); $i <= min($lastPage, $currentPage + 2); $i++)
-                                                <li class="page-item {{ $i == $currentPage ? 'active' : '' }}">
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div>
+                                        Showing {{ count($logs) }} of {{ $total }} entries
+                                    </div>
+                                    <div>
+                                        <nav aria-label="Log pagination">
+                                            <ul class="custom-pagination">
+                                                {{-- Previous Page --}}
+                                                <li class="page-item {{ $currentPage == 1 ? 'disabled' : '' }}">
                                                     <a class="page-link"
-                                                        href="{{ route('request-logger.logs.index', array_merge(request()->all(), ['page' => $i])) }}">{{ $i }}</a>
+                                                    href="{{ $currentPage > 1 ? route('request-logger.logs.index', array_merge(request()->all(), ['page' => $currentPage - 1])) : '#' }}">
+                                                        Previous
+                                                    </a>
                                                 </li>
-                                            @endfor
 
-                                            <li class="page-item {{ $currentPage == $lastPage ? 'disabled' : '' }}">
-                                                <a class="page-link"
-                                                    href="{{ route('request-logger.logs.index', array_merge(request()->all(), ['page' => min($lastPage, $currentPage + 1)])) }}">Next</a>
-                                            </li>
-                                        </ul>
-                                    </nav>
+                                                {{-- Page Numbers --}}
+                                                @foreach(range(max(1, $currentPage - 2), min($lastPage, $currentPage + 2)) as $i)
+                                                    <li class="page-item {{ $i == $currentPage ? 'active' : '' }}">
+                                                        <a class="page-link"
+                                                        href="{{ route('request-logger.logs.index', array_merge(request()->all(), ['page' => $i])) }}">
+                                                            {{ $i }}
+                                                        </a>
+                                                    </li>
+                                                @endforeach
+
+                                                {{-- Next Page --}}
+                                                <li class="page-item {{ $currentPage == $lastPage ? 'disabled' : '' }}">
+                                                    <a class="page-link"
+                                                    href="{{ $currentPage < $lastPage ? route('request-logger.logs.index', array_merge(request()->all(), ['page' => $currentPage + 1])) : '#' }}">
+                                                        Next
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </nav>
+                                    </div>
                                 </div>
-                            </div>
+
                         @endif
                     </div>
                 </div>
