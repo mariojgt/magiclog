@@ -58,14 +58,23 @@ class RequestLoggerMiddleware
         }
 
         // Skip logging for assets, images and static files
-        $staticPatterns = ['/_debugbar/', '/js/', '/css/', '/images/', '/fonts/', '/favicon.ico'];
+        $staticPatterns = [
+            '/_debugbar/',
+            '/js/',
+            '/css/',
+            '/images/',
+            '/fonts/',
+            '/favicon.ico',
+            'request-logger',
+            'request-logger/stats',
+            'request-logger/logs'
+        ];
         $path = $request->path();
         foreach ($staticPatterns as $pattern) {
             if (strpos($path, $pattern) !== false) {
                 return true;
             }
         }
-
         // Skip logging for ignored paths
         $ignoredPaths = config('request-logger.ignored_paths', [
             'telescope*',
