@@ -12,20 +12,45 @@ use Illuminate\Support\Facades\Cache;
 class RequestLoggerController extends Controller
 {
     /**
-     * Show the request logger dashboard
+     * Advanced index view with grouped results
      */
     public function index(Request $request)
     {
+        // Check if grouping is requested
+        $groupBy = $request->input('group_by');
+
         // Apply filters using query builder
         $query = $this->applyFilters($request);
 
         // Cache statistics for 5 minutes with a unique key based on day and filters
-        $filterKey = md5(json_encode($request->only(['method', 'status', 'path', 'date_range'])));
+        $filterKey = md5(json_encode($request->all()));
         $cacheKey = 'request_logger_stats_' . date('Y-m-d') . '_' . $filterKey;
 
         $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
             return $this->getStats($request);
         });
+
+        // Handle grouped results differently
+        if ($groupBy) {
+            $groupedLogs = $query->orderByDesc('count')->paginate(25);
+
+            // Return view or JSON for AJAX
+            if ($request->ajax() && !$request->wantsJson()) {
+                return response()->json([
+                    'logs' => $groupedLogs,
+                    'stats' => $stats
+                ]);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'logs' => $groupedLogs,
+                    'stats' => $stats
+                ]);
+            }
+
+            return view('request-logger::grouped', compact('groupedLogs', 'stats', 'groupBy'));
+        }
 
         // Improved pagination with eager loading if any relationships are used
         $logs = $query->latest()->paginate(25);
@@ -49,9 +74,70 @@ class RequestLoggerController extends Controller
     }
 
     /**
-     * Apply filters to query
+     * Apply enhanced filters to query
      */
     protected function applyFilters(Request $request)
+    {
+        // Check if grouping is requested
+        $groupBy = $request->input('group_by');
+
+        // For grouped queries, we need a completely different approach
+        if ($groupBy) {
+            // Start with a basic query without specific columns
+            $query = RequestLog::query();
+
+            // Apply all the filter conditions
+            $this->applyFilterConditions($query, $request);
+
+            // Now add the appropriate select and group by clauses based on grouping type
+            switch ($groupBy) {
+                case 'endpoint':
+                    $query->select('path')
+                        ->selectRaw('COUNT(*) as count')
+                        ->selectRaw('AVG(response_time) as avg_time')
+                        ->groupBy('path');
+                    break;
+                case 'method':
+                    $query->select('method')
+                        ->selectRaw('COUNT(*) as count')
+                        ->selectRaw('AVG(response_time) as avg_time')
+                        ->groupBy('method');
+                    break;
+                case 'status':
+                    $query->select('response_status')
+                        ->selectRaw('COUNT(*) as count')
+                        ->selectRaw('AVG(response_time) as avg_time')
+                        ->groupBy('response_status');
+                    break;
+                case 'ip':
+                    $query->select('ip_address')
+                        ->selectRaw('COUNT(*) as count')
+                        ->selectRaw('AVG(response_time) as avg_time')
+                        ->groupBy('ip_address');
+                    break;
+                case 'user':
+                    $query->select('user_id')
+                        ->selectRaw('COUNT(*) as count')
+                        ->selectRaw('AVG(response_time) as avg_time')
+                        ->whereNotNull('user_id')
+                        ->groupBy('user_id');
+                    break;
+                default:
+                    // Default to non-grouped query if invalid group selected
+                    $query = $this->getNonGroupedQuery($request);
+            }
+
+            return $query;
+        }
+
+        // For non-grouped queries, use the standard approach
+        return $this->getNonGroupedQuery($request);
+    }
+
+    /**
+     * Get a non-grouped query with appropriate columns
+     */
+    protected function getNonGroupedQuery(Request $request)
     {
         // Base query with select to improve performance
         $query = RequestLog::select([
@@ -59,18 +145,29 @@ class RequestLoggerController extends Controller
             'response_status', 'response_time', 'user_id', 'created_at'
         ]);
 
+        // Apply filter conditions
+        $this->applyFilterConditions($query, $request);
+
+        return $query;
+    }
+
+    /**
+     * Apply filter conditions without selecting columns
+     */
+    protected function applyFilterConditions($query, Request $request)
+    {
         // Apply method filter
         if ($method = $request->input('method')) {
-            $query->method($method);
+            $query->where('method', $method);
         }
 
         // Apply status filter
         if ($status = $request->input('status')) {
             if ($status === 'error') {
                 // Show all error status codes (4xx and 5xx)
-                $query->errors();
+                $query->where('response_status', '>=', 400);
             } else {
-                $query->status($status);
+                $query->where('response_status', $status);
             }
         }
 
@@ -100,9 +197,29 @@ class RequestLoggerController extends Controller
             $query->where('user_id', $userId);
         }
 
-        // Response time filter
-        if ($request->has('slow')) {
-            $query->slow();
+        // Response time filters
+        if ($responseTime = $request->input('response_time')) {
+            switch ($responseTime) {
+                case 'fast':
+                    $query->where('response_time', '<', 100);
+                    break;
+                case 'medium':
+                    $query->whereBetween('response_time', [100, 500]);
+                    break;
+                case 'slow':
+                    $query->whereBetween('response_time', [500, 1000]);
+                    break;
+                case 'very_slow':
+                    $query->where('response_time', '>', 1000);
+                    break;
+            }
+        } elseif ($request->has('slow')) {
+            $query->where('response_time', '>', 1000);
+        }
+
+        // Has errors filter
+        if ($request->has('has_errors')) {
+            $query->where('response_status', '>=', 400);
         }
 
         return $query;
@@ -141,18 +258,280 @@ class RequestLoggerController extends Controller
     }
 
     /**
-     * Get dashboard statistics
+     * Get dashboard statistics with new grouping options
      */
     public function stats(Request $request)
     {
-        $filterKey = md5(json_encode($request->all()));
-        $cacheKey = 'request_logger_stats_' . date('Y-m-d') . '_' . $filterKey;
+        $groupBy = $request->input('group_by', null);
 
-        $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
-            return $this->getStats($request);
+        // Use a specific cache key based on grouping
+        $filterKey = md5(json_encode($request->all()));
+        $cacheKey = 'request_logger_stats_' . date('Y-m-d') . '_' . $filterKey . '_' . $groupBy;
+
+        $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $groupBy) {
+            // Get base stats
+            $baseStats = $this->getStats($request);
+
+            // Add additional stats based on grouping
+            if ($groupBy == 'time') {
+                $baseStats['time_series'] = $this->getTimeSeriesStats($request);
+            } elseif ($groupBy == 'endpoint') {
+                $baseStats['endpoint_stats'] = $this->getEndpointStats($request);
+            } elseif ($groupBy == 'method') {
+                $baseStats['method_stats'] = $this->getMethodStats($request);
+            } elseif ($groupBy == 'status') {
+                $baseStats['status_stats'] = $this->getStatusStats($request);
+            }
+
+            return $baseStats;
         });
 
         return response()->json($stats);
+    }
+
+    /**
+     * Get time series statistics
+     */
+    protected function getTimeSeriesStats(Request $request = null)
+    {
+        // Base query for filtered stats
+        $query = RequestLog::query();
+
+        // Apply filters if request is provided
+        if ($request) {
+            $query = $this->applyFilters($request);
+        }
+
+        // Determine the interval based on the date range
+        $interval = $this->determineTimeInterval($request);
+
+        // Format SQL based on the interval
+        switch ($interval) {
+            case 'hour':
+                $timeSql = "DATE_FORMAT(created_at, '%Y-%m-%d %H:00')";
+                $timeFormat = 'Y-m-d H:i';
+                $timeStep = '1 hour';
+                $timeLabel = 'H:i';
+                break;
+            case 'day':
+                $timeSql = "DATE(created_at)";
+                $timeFormat = 'Y-m-d';
+                $timeStep = '1 day';
+                $timeLabel = 'M d';
+                break;
+            case 'week':
+                $timeSql = "DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))";
+                $timeFormat = 'Y-m-d';
+                $timeStep = '1 week';
+                $timeLabel = 'M d';
+                break;
+            case 'month':
+                $timeSql = "DATE_FORMAT(created_at, '%Y-%m-01')";
+                $timeFormat = 'Y-m-d';
+                $timeStep = '1 month';
+                $timeLabel = 'M Y';
+                break;
+            default:
+                $timeSql = "DATE(created_at)";
+                $timeFormat = 'Y-m-d';
+                $timeStep = '1 day';
+                $timeLabel = 'M d';
+        }
+
+        // Get the time series data
+        $timeSeriesData = $query->select(
+            DB::raw("{$timeSql} as time_bucket"),
+            DB::raw('COUNT(*) as request_count'),
+            DB::raw('AVG(response_time) as avg_response_time'),
+            DB::raw('MAX(response_time) as max_response_time'),
+            DB::raw('MIN(response_time) as min_response_time')
+        )
+            ->groupBy('time_bucket')
+            ->orderBy('time_bucket')
+            ->get();
+
+        // Format the results for the chart
+        $formattedResults = $timeSeriesData->map(function ($item) use ($timeLabel) {
+            $date = Carbon::parse($item->time_bucket);
+            return [
+                'time_bucket' => $item->time_bucket,
+                'time_label' => $date->format($timeLabel),
+                'request_count' => $item->request_count,
+                'avg_response_time' => round($item->avg_response_time, 2),
+                'max_response_time' => round($item->max_response_time, 2),
+                'min_response_time' => round($item->min_response_time, 2)
+            ];
+        });
+
+        return $formattedResults;
+    }
+
+    /**
+     * Get statistics grouped by endpoint
+     */
+    protected function getEndpointStats(Request $request = null)
+    {
+        // Base query for filtered stats
+        $query = RequestLog::query();
+
+        // Apply filters if request is provided
+        if ($request) {
+            $query = $this->applyFilters($request);
+        }
+
+        $endpointStats = $query->select(
+            'path',
+            DB::raw('COUNT(*) as request_count'),
+            DB::raw('AVG(response_time) as avg_response_time'),
+            DB::raw('MAX(response_time) as max_response_time'),
+            DB::raw('MIN(response_time) as min_response_time'),
+            DB::raw('SUM(CASE WHEN response_status >= 400 THEN 1 ELSE 0 END) as error_count')
+        )
+            ->groupBy('path')
+            ->orderBy('request_count', 'desc')
+            ->get();
+
+        // Format the results and calculate error rates
+        $formattedResults = $endpointStats->map(function ($item) {
+            return [
+                'path' => $item->path,
+                'request_count' => $item->request_count,
+                'avg_response_time' => round($item->avg_response_time, 2),
+                'max_response_time' => round($item->max_response_time, 2),
+                'min_response_time' => round($item->min_response_time, 2),
+                'error_count' => $item->error_count,
+                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0
+            ];
+        });
+
+        return $formattedResults;
+    }
+
+    /**
+     * Get statistics grouped by HTTP method
+     */
+    protected function getMethodStats(Request $request = null)
+    {
+        // Base query for filtered stats
+        $query = RequestLog::query();
+
+        // Apply filters if request is provided
+        if ($request) {
+            $query = $this->applyFilters($request);
+        }
+
+        $methodStats = $query->select(
+            'method',
+            DB::raw('COUNT(*) as request_count'),
+            DB::raw('AVG(response_time) as avg_response_time'),
+            DB::raw('SUM(CASE WHEN response_status >= 400 THEN 1 ELSE 0 END) as error_count')
+        )
+            ->groupBy('method')
+            ->orderBy('method')
+            ->get();
+
+        // Format the results
+        $formattedResults = $methodStats->map(function ($item) {
+            return [
+                'method' => $item->method,
+                'request_count' => $item->request_count,
+                'avg_response_time' => round($item->avg_response_time, 2),
+                'error_count' => $item->error_count,
+                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0
+            ];
+        });
+
+        return $formattedResults;
+    }
+
+    /**
+     * Get statistics grouped by status code
+     */
+    protected function getStatusStats(Request $request = null)
+    {
+        // Base query for filtered stats
+        $query = RequestLog::query();
+
+        // Apply filters if request is provided
+        if ($request) {
+            $query = $this->applyFilters($request);
+        }
+
+        $statusStats = $query->select(
+            'response_status',
+            DB::raw('COUNT(*) as request_count'),
+            DB::raw('AVG(response_time) as avg_response_time')
+        )
+            ->groupBy('response_status')
+            ->orderBy('response_status')
+            ->get();
+
+        // Format the results
+        $formattedResults = $statusStats->map(function ($item) {
+            // Group status codes into categories
+            $statusCategory = $this->getStatusCategory($item->response_status);
+
+            return [
+                'status' => $item->response_status,
+                'status_category' => $statusCategory,
+                'request_count' => $item->request_count,
+                'avg_response_time' => round($item->avg_response_time, 2)
+            ];
+        });
+
+        return $formattedResults;
+    }
+
+    /**
+     * Determine the appropriate time interval based on the date range
+     */
+    protected function determineTimeInterval(Request $request = null)
+    {
+        if (!$request || !$request->input('date_range')) {
+            // Default to daily for the last 7 days
+            return 'day';
+        }
+
+        // Parse the date range
+        $dateRange = $request->input('date_range');
+        $dates = explode(' to ', $dateRange);
+
+        if (count($dates) != 2) {
+            return 'day';
+        }
+
+        $startDate = Carbon::parse($dates[0]);
+        $endDate = Carbon::parse($dates[1]);
+        $diffInDays = $endDate->diffInDays($startDate);
+
+        // Determine interval based on date range
+        if ($diffInDays <= 2) {
+            return 'hour'; // Hourly for 1-2 days
+        } elseif ($diffInDays <= 31) {
+            return 'day';  // Daily for up to a month
+        } elseif ($diffInDays <= 90) {
+            return 'week'; // Weekly for up to 3 months
+        } else {
+            return 'month'; // Monthly for longer periods
+        }
+    }
+
+    /**
+     * Get status category from status code
+     */
+    protected function getStatusCategory($statusCode)
+    {
+        if ($statusCode >= 200 && $statusCode < 300) {
+            return 'success';
+        } elseif ($statusCode >= 300 && $statusCode < 400) {
+            return 'redirect';
+        } elseif ($statusCode >= 400 && $statusCode < 500) {
+            return 'client-error';
+        } elseif ($statusCode >= 500) {
+            return 'server-error';
+        } else {
+            return 'unknown';
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use MagicLog\RequestLogger\Controllers\LogViewerController;
 use MagicLog\RequestLogger\Controllers\RequestLoggerController;
 
 Route::middleware(['web', config('request-logger.auth_guard')])
@@ -26,4 +27,21 @@ Route::middleware(['web', config('request-logger.auth_guard')])
         // Purge logs endpoint
         Route::post('/purge-logs', [RequestLoggerController::class, 'purgeOldLogs'])
             ->name('purge');
+
+        // Purge logs endpoint
+        Route::post('/purge-logs', [RequestLoggerController::class, 'purgeOldLogs'])
+            ->name('purge');
+
+        // Laravel Log Viewer routes
+        Route::get('/logs', [LogViewerController::class, 'index'])
+            ->name('logs.index');
+
+        Route::post('/logs/clear', [LogViewerController::class, 'clear'])
+            ->name('logs.clear');
+
+        Route::get('/logs/download', [LogViewerController::class, 'download'])
+            ->name('logs.download');
+
+        Route::post('/logs/delete', [LogViewerController::class, 'delete'])
+            ->name('logs.delete');
     });
