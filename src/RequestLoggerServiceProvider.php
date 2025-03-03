@@ -1,11 +1,12 @@
 <?php
 namespace MagicLog\RequestLogger;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\View;
-use MagicLog\RequestLogger\Middleware\RequestLoggerMiddleware;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Support\ServiceProvider;
+use MagicLog\RequestLogger\Middleware\IpBanMiddleware;
+use MagicLog\RequestLogger\Middleware\RequestLoggerMiddleware;
 
 class RequestLoggerServiceProvider extends ServiceProvider
 {
@@ -28,12 +29,19 @@ class RequestLoggerServiceProvider extends ServiceProvider
 
         // Register middleware
         $router->aliasMiddleware('request.logger', RequestLoggerMiddleware::class);
+        $router->aliasMiddleware('ip.ban', IpBanMiddleware::class);
 
         // Register base layout
         $this->registerBaseLayout();
 
         // Register global middleware
         $this->registerGlobalMiddleware($kernel);
+
+        // Publish config files
+        $this->publishConfigs();
+
+        // Register commands
+        $this->registerCommands();
     }
 
     /**
@@ -41,7 +49,12 @@ class RequestLoggerServiceProvider extends ServiceProvider
      */
     protected function registerGlobalMiddleware(Kernel $kernel)
     {
-        // Add middleware to global middleware stack
+        // Register IP ban middleware first (to block before logging)
+        if (config('request-logger.ip_ban_enabled', true)) {
+            $kernel->prependMiddleware(IpBanMiddleware::class);
+        }
+
+        // Add request logger middleware to global middleware stack
         $kernel->pushMiddleware(RequestLoggerMiddleware::class);
     }
 
@@ -88,6 +101,30 @@ class RequestLoggerServiceProvider extends ServiceProvider
         // Create a base layout if it doesn't exist in the main application
         if (!View::exists('layouts.app')) {
             View::addLocation(__DIR__.'/Resources/views');
+        }
+    }
+
+    /**
+     * Publish configuration files
+     */
+    protected function publishConfigs()
+    {
+        $this->publishes([
+            __DIR__.'/../config/request-logger.php' => config_path('request-logger.php'),
+        ], 'request-logger-config');
+    }
+
+    /**
+     * Register commands
+     */
+    protected function registerCommands()
+    {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \MagicLog\RequestLogger\Commands\ClearOldLogs::class,
+                \MagicLog\RequestLogger\Commands\ListBannedIps::class,
+                \MagicLog\RequestLogger\Commands\UnbanIp::class,
+            ]);
         }
     }
 

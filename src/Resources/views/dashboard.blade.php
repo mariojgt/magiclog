@@ -30,6 +30,8 @@
                     <div class="actions d-flex">
                         <a href="{{ route('request-logger.logs.index') }}" class="btn btn-primary">View
                             All Logs</a>
+                        <a href="{{ route('request-logger.banned-ips.index') }}" class="btn btn-primary">Ban Ips</a>
+                        <a href="{{ route('request-logger.security.analytics') }}" class="btn btn-primary">Analytics</a>
                     </div>
                 </div>
 

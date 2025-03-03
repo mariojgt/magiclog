@@ -5,6 +5,15 @@
         {{-- Log Files Grid --}}
         <div class="row mb-4">
             <div class="col-12">
+             <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="mb-0">Laravel Logs</h1>
+                    <span class="text-muted">{{ $selectedFile ?? 'No log file selected' }}</span>
+                    <div class="actions d-flex">
+                        <a href="{{ route('request-logger.index') }}" class="btn btn-secondary">
+                            <span class="icon icon-arrow-left mr-1"></span> Back to Requests
+                        </a>
+                    </div>
+                </div>
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title mb-3">Available Log Files</h5>
@@ -63,16 +72,6 @@
 
         <div class="row">
             <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="mb-0">Laravel Logs</h1>
-                    <span class="text-muted">{{ $selectedFile ?? 'No log file selected' }}</span>
-                    <div class="actions d-flex">
-                        <a href="{{ route('request-logger.index') }}" class="btn btn-secondary">
-                            <span class="icon icon-arrow-left mr-1"></span> Back to Requests
-                        </a>
-                    </div>
-                </div>
-
                 {{-- Filters --}}
                 <div class="card mb-4">
                     <div class="card-body">
