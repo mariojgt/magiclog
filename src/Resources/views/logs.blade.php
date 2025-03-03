@@ -123,7 +123,7 @@
                 {{-- Stats Section --}}
                 @if($selectedFile && !empty($logs))
                     <div class="row mb-4">
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title">Log Level Distribution</h5>
@@ -149,7 +149,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title">Log Summary</h5>

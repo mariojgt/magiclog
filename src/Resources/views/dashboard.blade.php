@@ -28,10 +28,22 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="actions d-flex">
-                        <a href="{{ route('request-logger.logs.index') }}" class="btn btn-primary">View
-                            All Logs</a>
-                        <a href="{{ route('request-logger.banned-ips.index') }}" class="btn btn-primary">Ban Ips</a>
-                        <a href="{{ route('request-logger.security.analytics') }}" class="btn btn-primary">Analytics</a>
+                        <div class="dropdown mr-2">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="systemLogsDropdown">
+                                <span class="icon icon-download mr-1"></span> System Actions
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="systemLogsDropdown">
+                                <a class="dropdown-item" href="{{ route('request-logger.logs.index') }}">
+                                    <span class="icon icon-chart-line mr-1"></span> View All Logs
+                                </a>
+                                <a class="dropdown-item" href="{{ route('request-logger.banned-ips.index') }}">
+                                    <span class="icon icon-alert-circle mr-1"></span> Ban IPs
+                                </a>
+                                <a class="dropdown-item" href="{{ route('request-logger.security.analytics') }}">
+                                    <span class="icon icon-stopwatch mr-1"></span> Analytics
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -793,14 +805,33 @@
         // Function to initialize the request time chart
         function initializeRequestTimeChart() {
             const ctx = document.getElementById('request-time-chart');
-            if (!ctx) return;
+            const container = document.getElementById('request-time-chart-container');
+
+            if (!ctx || !container) return;
+
+            // Show loading indicator
+            container.innerHTML = '<div class="chart-loading"><div class="spinner"></div> Loading chart data...</div>';
 
             // Fetch data from the stats endpoint with time grouping
             fetch('/request-logger/stats?group_by=time')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    if (!data.time_series || data.time_series.length === 0) {
+                        container.innerHTML = '<div class="alert alert-info">No time series data available</div>';
+                        return;
+                    }
+
+                    // Clear loading indicator and restore canvas
+                    container.innerHTML = '<canvas id="request-time-chart"></canvas>';
+                    const canvas = document.getElementById('request-time-chart');
+
                     // Setup the chart
-                    const timeChart = new Chart(ctx, {
+                    const timeChart = new Chart(canvas, {
                         type: 'line',
                         data: {
                             labels: data.time_series.map(item => item.time_label),
@@ -886,8 +917,7 @@
                 })
                 .catch(error => {
                     console.error('Error loading request time chart:', error);
-                    document.getElementById('request-time-chart-container').innerHTML =
-                        '<div class="alert alert-danger">Failed to load chart data</div>';
+                    container.innerHTML = '<div class="alert alert-danger">Failed to load chart data: ' + error.message + '</div>';
                 });
         }
 
