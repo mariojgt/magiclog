@@ -34,7 +34,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <h2 class="mb-0 text-white">{{ $summary['active_bans'] }}</h2>
                                 <div class="card-icon bg-white text-primary rounded-circle p-3">
-                                    <span class="icon icon-shield"></span>
+                                    🔫
                                 </div>
                             </div>
                             <div class="mt-2 text-white-50">
@@ -53,7 +53,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <h2 class="mb-0 text-white">{{ $summary['attacks_detected'] }}</h2>
                                 <div class="card-icon bg-white text-danger rounded-circle p-3">
-                                    <span class="icon icon-alert-triangle"></span>
+                                    ⚠️
                                 </div>
                             </div>
                             <div class="mt-2 text-white-50">
@@ -70,7 +70,7 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <h2 class="mb-0 text-white">{{ $summary['repeat_offenders'] }}</h2>
                                 <div class="card-icon bg-white text-warning rounded-circle p-3">
-                                    <span class="icon icon-repeat"></span>
+                                    🔫
                                 </div>
                             </div>
                             <div class="mt-2 text-white-50">
@@ -89,7 +89,7 @@
                                     {{ $summary['top_methods']->first()->method ?? 'N/A' }}
                                 </h2>
                                 <div class="card-icon bg-white text-info rounded-circle p-3">
-                                    <span class="icon icon-trending-up"></span>
+                                    🔫
                                 </div>
                             </div>
                             <div class="mt-2 text-white-50">
