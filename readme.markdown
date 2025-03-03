@@ -1,6 +1,6 @@
 # Laravel Request Logger
 
-A lightweight, feature-rich HTTP request logging and dashboard package for Laravel.
+A lightweight, feature-rich HTTP request logging and dashboard package for Laravel, with advanced security features, like a auto ban firewall, and performance monitoring, this can protect your application from malicious like androxgh0st, sql injection, and more.
 
 Images
 
