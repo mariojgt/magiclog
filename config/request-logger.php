@@ -103,7 +103,7 @@ return [
     'ip_ban_enabled' => env('REQUEST_LOGGER_IP_BAN_ENABLED', true),
 
     // Number of requests allowed in the rate limit window
-    'rate_limit_threshold' => env('REQUEST_LOGGER_RATE_LIMIT', 20),
+    'rate_limit_threshold' => env('REQUEST_LOGGER_RATE_LIMIT', 50),
 
     // Rate limit window in seconds
     'rate_limit_window' => env('REQUEST_LOGGER_RATE_WINDOW', 30),
@@ -121,6 +121,12 @@ return [
     'safe_paths' => [
         'api/webhook/github', // GitHub webhook
         // Add other legitimate API endpoints that might receive high traffic
+    ],
+
+    // Add this new configuration option
+    'safe_path_prefixes' => [
+        'user/track/lesson/progress/',
+        // Add more path prefixes as needed
     ],
 
     // Enable or disable misleading responses for banned IPs

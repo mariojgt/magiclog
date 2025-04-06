@@ -152,11 +152,26 @@ class IpBanMiddleware
      */
     protected function isSafePath(Request $request): bool
     {
-        // Cache safe paths for performance
+        // Get regular safe paths
         $safePaths = Cache::remember('ip_ban_safe_paths', 60, function () {
             return config('request-logger.safe_paths', []);
         });
 
+        // Get safe path prefixes
+        $safePrefixes = Cache::remember('ip_ban_safe_prefixes', 60, function () {
+            return config('request-logger.safe_path_prefixes', []);
+        });
+
+        $path = $request->path();
+
+        // Check path against safe prefixes
+        foreach ($safePrefixes as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                return true;
+            }
+        }
+
+        // Check against regular safe paths
         foreach ($safePaths as $safePath) {
             if ($request->is($safePath)) {
                 return true;
