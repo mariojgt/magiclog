@@ -4,11 +4,12 @@ namespace MagicLog\RequestLogger\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\View;
 use MagicLog\RequestLogger\Models\BannedIp;
+use Mariojgt\SkeletonAdmin\Models\Admin;
+use Mariojgt\SkeletonAdmin\Notifications\GenericNotification;
+use Symfony\Component\HttpFoundation\Response;
 
 class IpBanMiddleware
 {
@@ -479,6 +480,7 @@ class IpBanMiddleware
         if ($useMinutes) {
             $hours = $hours / 60; // Convert to minutes
         }
+
         // Store the timestamp when the ban was applied
         $banData = [
             'banned_at' => now()->toIso8601String(),
@@ -496,6 +498,28 @@ class IpBanMiddleware
                 'request_count' => Cache::get($this->requestCountPrefix . $ip, 0),
                 'paths' => Cache::get($this->requestCountPrefix . $ip . ':paths', []),
             ]);
+
+            // Check if Admin class exists before trying to notify admins
+            if (class_exists(Admin::class)) {
+                try {
+                    // Get only the first admin instead of sending to all admins
+                    $firstAdmin = Admin::first();
+
+                    if ($firstAdmin) {
+                        $message = "IP address {$ip} has been banned for suspicious activity.";
+                        $firstAdmin->notify(new GenericNotification(
+                            'IP Banned',
+                            'warning',
+                            $message,
+                            'icon',
+                            false,
+                            true
+                        ));
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Failed to send admin notification: {$e->getMessage()}");
+                }
+            }
         } catch (\Exception $e) {
             Log::error("Failed to log banned IP to database: {$e->getMessage()}", [
                 'exception' => $e->getMessage(),
