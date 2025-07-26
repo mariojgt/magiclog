@@ -1,9 +1,10 @@
 <?php
+
 namespace MagicLog\RequestLogger;
 
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\View;
-use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use MagicLog\RequestLogger\Middleware\IpBanMiddleware;
 use MagicLog\RequestLogger\Middleware\RequestLoggerMiddleware;
@@ -99,7 +100,7 @@ class RequestLoggerServiceProvider extends ServiceProvider
     protected function registerBaseLayout()
     {
         // Create a base layout if it doesn't exist in the main application
-        if (!View::exists('layouts.app')) {
+        if (! View::exists('layouts.app')) {
             View::addLocation(__DIR__.'/Resources/views');
         }
     }

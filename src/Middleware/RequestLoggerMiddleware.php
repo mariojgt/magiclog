@@ -4,12 +4,12 @@ namespace MagicLog\RequestLogger\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
-use MagicLog\RequestLogger\Models\RequestLog;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use MagicLog\RequestLogger\Models\RequestLog;
+use Symfony\Component\HttpFoundation\Response;
 
 class RequestLoggerMiddleware
 {
@@ -53,7 +53,7 @@ class RequestLoggerMiddleware
     protected function isIgnoredPath(Request $request): bool
     {
         // Check global configuration first
-        if (!config('request-logger.enabled', true)) {
+        if (! config('request-logger.enabled', true)) {
             return true;
         }
 
@@ -67,7 +67,7 @@ class RequestLoggerMiddleware
             '/favicon.ico',
             'request-logger',
             'request-logger/stats',
-            'request-logger/logs'
+            'request-logger/logs',
         ];
         $path = $request->path();
         foreach ($staticPatterns as $pattern) {
@@ -126,7 +126,7 @@ class RequestLoggerMiddleware
                     'password',
                     'password_confirmation',
                     'credit_card',
-                    'token'
+                    'token',
                 ])
             ));
 
@@ -157,9 +157,9 @@ class RequestLoggerMiddleware
             ]);
         } catch (\Exception $e) {
             // Log error but don't disrupt the application
-            Log::error('Request logging failed: ' . $e->getMessage(), [
+            Log::error('Request logging failed: '.$e->getMessage(), [
                 'exception' => $e,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -173,12 +173,12 @@ class RequestLoggerMiddleware
         $sensitiveHeaders = config('request-logger.hidden_headers', [
             'authorization',
             'cookie',
-            'set-cookie'
+            'set-cookie',
         ]);
 
         return collect($headers)
             ->filter(function ($value, $key) use ($sensitiveHeaders) {
-                return !in_array(strtolower($key), $sensitiveHeaders);
+                return ! in_array(strtolower($key), $sensitiveHeaders);
             })
             ->toArray();
     }
@@ -198,7 +198,7 @@ class RequestLoggerMiddleware
 
                 // Limit string length
                 if (is_string($value)) {
-                    return strlen($value) > 500 ? substr($value, 0, 500) . '...[truncated]' : $value;
+                    return strlen($value) > 500 ? substr($value, 0, 500).'...[truncated]' : $value;
                 }
 
                 return $value;
@@ -242,11 +242,11 @@ class RequestLoggerMiddleware
         // Handle HTML responses
         if (strpos($contentType, 'text/html') !== false) {
             // Only store the first 1000 characters of HTML responses
-            return '[HTML Content] ' . substr(strip_tags($content), 0, 1000) . '...';
+            return '[HTML Content] '.substr(strip_tags($content), 0, 1000).'...';
         }
 
         // Other response types
-        return '[' . ($contentType ?? 'Unknown Content Type') . ']';
+        return '['.($contentType ?? 'Unknown Content Type').']';
     }
 
     /**
@@ -265,7 +265,7 @@ class RequestLoggerMiddleware
             'audio/',
             'video/',
             'application/vnd.ms-',
-            'application/vnd.openxmlformats-'
+            'application/vnd.openxmlformats-',
         ];
 
         foreach ($fileTypes as $type) {
@@ -282,7 +282,7 @@ class RequestLoggerMiddleware
      */
     protected function filterSensitiveData($data)
     {
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             return $data;
         }
 
@@ -296,7 +296,7 @@ class RequestLoggerMiddleware
             'ssn',
             'social_security',
             'auth',
-            'authentication'
+            'authentication',
         ]);
 
         foreach ($data as $key => $value) {
@@ -304,6 +304,7 @@ class RequestLoggerMiddleware
             foreach ($sensitiveKeys as $sensitiveKey) {
                 if (stripos($key, $sensitiveKey) !== false) {
                     $data[$key] = '[REDACTED]';
+
                     continue 2;
                 }
             }

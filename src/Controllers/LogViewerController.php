@@ -3,10 +3,10 @@
 namespace MagicLog\RequestLogger\Controllers;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Carbon\Carbon;
 
 class LogViewerController extends Controller
 {
@@ -47,7 +47,7 @@ class LogViewerController extends Controller
             'total' => $total,
             'perPage' => $perPage,
             'currentPage' => $page,
-            'lastPage' => ceil($total / $perPage)
+            'lastPage' => ceil($total / $perPage),
         ]);
     }
 
@@ -60,7 +60,7 @@ class LogViewerController extends Controller
         $logPath = storage_path('logs');
 
         // Get all .log files in the directory
-        $files = File::glob($logPath . '/*.log');
+        $files = File::glob($logPath.'/*.log');
 
         // Process each file to get metadata
         $fileData = [];
@@ -96,12 +96,12 @@ class LogViewerController extends Controller
                 'line_count' => $lineCount,
                 'error_count' => $errorCount,
                 'is_today' => $isToday,
-                'is_default' => $isDefault
+                'is_default' => $isDefault,
             ];
         }
 
         // Sort files by modified time (newest first)
-        usort($fileData, function($a, $b) {
+        usort($fileData, function ($a, $b) {
             return $b['modified'] - $a['modified'];
         });
 
@@ -119,7 +119,7 @@ class LogViewerController extends Controller
         $pow = min($pow, count($units) - 1);
         $bytes /= pow(1024, $pow);
 
-        return round($bytes, 2) . ' ' . $units[$pow];
+        return round($bytes, 2).' '.$units[$pow];
     }
 
     /**
@@ -149,6 +149,7 @@ class LogViewerController extends Controller
     protected function countErrorsInFile($file)
     {
         $content = File::get($file);
+
         return substr_count(strtolower($content), '.error:') +
                substr_count(strtolower($content), '.critical:') +
                substr_count(strtolower($content), '.alert:') +
@@ -170,11 +171,11 @@ class LogViewerController extends Controller
                 'warning' => 0,
                 'notice' => 0,
                 'info' => 0,
-                'debug' => 0
+                'debug' => 0,
             ],
             'today' => 0,
             'yesterday' => 0,
-            'this_week' => 0
+            'this_week' => 0,
         ];
 
         $today = Carbon::today()->format('Y-m-d');
@@ -214,9 +215,9 @@ class LogViewerController extends Controller
     protected function parseLogFile($fileName)
     {
         $logs = [];
-        $filePath = storage_path('logs/' . $fileName);
+        $filePath = storage_path('logs/'.$fileName);
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             return $logs;
         }
 
@@ -239,7 +240,7 @@ class LogViewerController extends Controller
         // Process each log entry
         foreach ($entries as $i => $entry) {
             // Skip if no datetime found for this entry
-            if (!isset($dates[0][$i])) {
+            if (! isset($dates[0][$i])) {
                 continue;
             }
 
@@ -268,12 +269,12 @@ class LogViewerController extends Controller
                 'level' => strtolower($level),
                 'message' => $entry,
                 'stack_trace' => $stackTrace,
-                'context' => $context
+                'context' => $context,
             ];
         }
 
         // Sort logs by datetime (newest first)
-        usort($logs, function($a, $b) {
+        usort($logs, function ($a, $b) {
             return strtotime($b['datetime']) - strtotime($a['datetime']);
         });
 
@@ -286,7 +287,7 @@ class LogViewerController extends Controller
     protected function readLargeFileTail($filePath, $lines = 1000)
     {
         // Command to get the last X lines
-        $command = "tail -n {$lines} " . escapeshellarg($filePath);
+        $command = "tail -n {$lines} ".escapeshellarg($filePath);
 
         // Execute the command
         $output = shell_exec($command);
@@ -334,17 +335,18 @@ class LogViewerController extends Controller
     {
         // Filter by log level
         if ($level = $request->input('level')) {
-            $logs = array_filter($logs, function($log) use ($level) {
+            $logs = array_filter($logs, function ($log) use ($level) {
                 if ($level === 'error' && in_array($log['level'], ['emergency', 'alert', 'critical', 'error'])) {
                     return true;
                 }
+
                 return $log['level'] === $level;
             });
         }
 
         // Filter by search term
         if ($search = $request->input('search')) {
-            $logs = array_filter($logs, function($log) use ($search) {
+            $logs = array_filter($logs, function ($log) use ($search) {
                 return stripos($log['message'], $search) !== false ||
                        ($log['stack_trace'] && stripos($log['stack_trace'], $search) !== false);
             });
@@ -352,7 +354,7 @@ class LogViewerController extends Controller
 
         // Filter by date
         if ($date = $request->input('date')) {
-            $logs = array_filter($logs, function($log) use ($date) {
+            $logs = array_filter($logs, function ($log) use ($date) {
                 return strpos($log['datetime'], $date) === 0;
             });
         }
@@ -368,7 +370,7 @@ class LogViewerController extends Controller
         $file = $request->input('file');
 
         if ($file) {
-            $filePath = storage_path('logs/' . $file);
+            $filePath = storage_path('logs/'.$file);
 
             if (File::exists($filePath)) {
                 // Write an empty string to the file to clear it
@@ -391,7 +393,7 @@ class LogViewerController extends Controller
         $file = $request->input('file');
 
         if ($file) {
-            $filePath = storage_path('logs/' . $file);
+            $filePath = storage_path('logs/'.$file);
 
             if (File::exists($filePath)) {
                 return response()->download($filePath);
@@ -410,7 +412,7 @@ class LogViewerController extends Controller
         $file = $request->input('file');
 
         if ($file) {
-            $filePath = storage_path('logs/' . $file);
+            $filePath = storage_path('logs/'.$file);
 
             if (File::exists($filePath)) {
                 File::delete($filePath);

@@ -86,7 +86,7 @@ return [
     'capture_response_body' => true,  // Enable response body capture
     'async_logging' => true,          // Use queue for logging
     'hidden_response_fields' => [     // Fields to redact from responses
-        'password', 'token', 'secret'
+        'password', 'token', 'secret',
     ],
     'auth_guard' => env('REQUEST_LOGGER_AUTH_GUARD', 'web'),  // Auth guard to use for user identification
 

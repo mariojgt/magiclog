@@ -2,8 +2,8 @@
 
 namespace MagicLog\RequestLogger\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class BannedIp extends Model
 {
@@ -128,6 +128,7 @@ class BannedIp extends Model
         if ($ban) {
             $ban->banned_until = now()->subMinute(); // Set to the past
             $ban->save();
+
             return true;
         }
 

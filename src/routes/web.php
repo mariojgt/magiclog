@@ -66,5 +66,5 @@ Route::middleware(['web', config('request-logger.auth_guard')])
 
         // Security Analytics route
         Route::get('/security-analytics', [SecurityAnalyticsController::class, 'index'])
-        ->name('security.analytics');
+            ->name('security.analytics');
     });

@@ -3,11 +3,11 @@
 namespace MagicLog\RequestLogger\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use MagicLog\RequestLogger\Models\RequestLog;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use MagicLog\RequestLogger\Models\RequestLog;
 
 class RequestLoggerController extends Controller
 {
@@ -24,7 +24,7 @@ class RequestLoggerController extends Controller
 
         // Cache statistics for 5 minutes with a unique key based on day and filters
         $filterKey = md5(json_encode($request->all()));
-        $cacheKey = 'request_logger_stats_' . date('Y-m-d') . '_' . $filterKey;
+        $cacheKey = 'request_logger_stats_'.date('Y-m-d').'_'.$filterKey;
 
         $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
             return $this->getStats($request);
@@ -35,17 +35,17 @@ class RequestLoggerController extends Controller
             $groupedLogs = $query->orderByDesc('count')->paginate(25);
 
             // Return view or JSON for AJAX
-            if ($request->ajax() && !$request->wantsJson()) {
+            if ($request->ajax() && ! $request->wantsJson()) {
                 return response()->json([
                     'logs' => $groupedLogs,
-                    'stats' => $stats
+                    'stats' => $stats,
                 ]);
             }
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'logs' => $groupedLogs,
-                    'stats' => $stats
+                    'stats' => $stats,
                 ]);
             }
 
@@ -56,17 +56,17 @@ class RequestLoggerController extends Controller
         $logs = $query->latest()->paginate(25);
 
         // Return view or JSON for AJAX
-        if ($request->ajax() && !$request->wantsJson()) {
+        if ($request->ajax() && ! $request->wantsJson()) {
             return response()->json([
                 'logs' => $logs,
-                'stats' => $stats
+                'stats' => $stats,
             ]);
         }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'logs' => $logs,
-                'stats' => $stats
+                'stats' => $stats,
             ]);
         }
 
@@ -142,7 +142,7 @@ class RequestLoggerController extends Controller
         // Base query with select to improve performance
         $query = RequestLog::select([
             'id', 'method', 'path', 'full_url', 'ip_address',
-            'response_status', 'response_time', 'user_id', 'created_at'
+            'response_status', 'response_time', 'user_id', 'created_at',
         ]);
 
         // Apply filter conditions
@@ -182,7 +182,7 @@ class RequestLoggerController extends Controller
             if (count($dates) == 2) {
                 $query->whereBetween('created_at', [
                     Carbon::parse($dates[0])->startOfDay(),
-                    Carbon::parse($dates[1])->endOfDay()
+                    Carbon::parse($dates[1])->endOfDay(),
                 ]);
             }
         }
@@ -253,7 +253,7 @@ class RequestLoggerController extends Controller
             'response_time' => $log->response_time,
             'response_body' => $responseBody,
             'user_id' => $log->user_id,
-            'created_at' => $log->created_at->toDateTimeString()
+            'created_at' => $log->created_at->toDateTimeString(),
         ]);
     }
 
@@ -266,7 +266,7 @@ class RequestLoggerController extends Controller
 
         // Use a specific cache key based on grouping
         $filterKey = md5(json_encode($request->all()));
-        $cacheKey = 'request_logger_stats_' . date('Y-m-d') . '_' . $filterKey . '_' . $groupBy;
+        $cacheKey = 'request_logger_stats_'.date('Y-m-d').'_'.$filterKey.'_'.$groupBy;
 
         $stats = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $groupBy) {
             // Get base stats
@@ -292,7 +292,7 @@ class RequestLoggerController extends Controller
     /**
      * Get time series statistics
      */
-    protected function getTimeSeriesStats(Request $request = null)
+    protected function getTimeSeriesStats(?Request $request = null)
     {
         // Base query for filtered stats
         $query = RequestLog::query();
@@ -314,13 +314,13 @@ class RequestLoggerController extends Controller
                 $timeLabel = 'H:i';
                 break;
             case 'day':
-                $timeSql = "DATE(created_at)";
+                $timeSql = 'DATE(created_at)';
                 $timeFormat = 'Y-m-d';
                 $timeStep = '1 day';
                 $timeLabel = 'M d';
                 break;
             case 'week':
-                $timeSql = "DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))";
+                $timeSql = 'DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))';
                 $timeFormat = 'Y-m-d';
                 $timeStep = '1 week';
                 $timeLabel = 'M d';
@@ -332,7 +332,7 @@ class RequestLoggerController extends Controller
                 $timeLabel = 'M Y';
                 break;
             default:
-                $timeSql = "DATE(created_at)";
+                $timeSql = 'DATE(created_at)';
                 $timeFormat = 'Y-m-d';
                 $timeStep = '1 day';
                 $timeLabel = 'M d';
@@ -353,13 +353,14 @@ class RequestLoggerController extends Controller
         // Format the results for the chart
         $formattedResults = $timeSeriesData->map(function ($item) use ($timeLabel) {
             $date = Carbon::parse($item->time_bucket);
+
             return [
                 'time_bucket' => $item->time_bucket,
                 'time_label' => $date->format($timeLabel),
                 'request_count' => $item->request_count,
                 'avg_response_time' => round($item->avg_response_time, 2),
                 'max_response_time' => round($item->max_response_time, 2),
-                'min_response_time' => round($item->min_response_time, 2)
+                'min_response_time' => round($item->min_response_time, 2),
             ];
         });
 
@@ -369,7 +370,7 @@ class RequestLoggerController extends Controller
     /**
      * Get statistics grouped by endpoint
      */
-    protected function getEndpointStats(Request $request = null)
+    protected function getEndpointStats(?Request $request = null)
     {
         // Base query for filtered stats
         $query = RequestLog::query();
@@ -400,7 +401,7 @@ class RequestLoggerController extends Controller
                 'max_response_time' => round($item->max_response_time, 2),
                 'min_response_time' => round($item->min_response_time, 2),
                 'error_count' => $item->error_count,
-                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0
+                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0,
             ];
         });
 
@@ -410,7 +411,7 @@ class RequestLoggerController extends Controller
     /**
      * Get statistics grouped by HTTP method
      */
-    protected function getMethodStats(Request $request = null)
+    protected function getMethodStats(?Request $request = null)
     {
         // Base query for filtered stats
         $query = RequestLog::query();
@@ -437,7 +438,7 @@ class RequestLoggerController extends Controller
                 'request_count' => $item->request_count,
                 'avg_response_time' => round($item->avg_response_time, 2),
                 'error_count' => $item->error_count,
-                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0
+                'error_rate' => $item->request_count > 0 ? round(($item->error_count / $item->request_count) * 100, 2) : 0,
             ];
         });
 
@@ -447,7 +448,7 @@ class RequestLoggerController extends Controller
     /**
      * Get statistics grouped by status code
      */
-    protected function getStatusStats(Request $request = null)
+    protected function getStatusStats(?Request $request = null)
     {
         // Base query for filtered stats
         $query = RequestLog::query();
@@ -475,7 +476,7 @@ class RequestLoggerController extends Controller
                 'status' => $item->response_status,
                 'status_category' => $statusCategory,
                 'request_count' => $item->request_count,
-                'avg_response_time' => round($item->avg_response_time, 2)
+                'avg_response_time' => round($item->avg_response_time, 2),
             ];
         });
 
@@ -485,9 +486,9 @@ class RequestLoggerController extends Controller
     /**
      * Determine the appropriate time interval based on the date range
      */
-    protected function determineTimeInterval(Request $request = null)
+    protected function determineTimeInterval(?Request $request = null)
     {
-        if (!$request || !$request->input('date_range')) {
+        if (! $request || ! $request->input('date_range')) {
             // Default to daily for the last 7 days
             return 'day';
         }
@@ -537,7 +538,7 @@ class RequestLoggerController extends Controller
     /**
      * Generate aggregate statistics
      */
-    protected function getStats(Request $request = null)
+    protected function getStats(?Request $request = null)
     {
         // Base query for filtered stats
         $query = RequestLog::query();
@@ -582,7 +583,7 @@ class RequestLoggerController extends Controller
         $cutoffDate = now()->subDays($daysToKeep)->format('Y-m-d H:i:s');
 
         // Log the cutoff date for debugging (optional)
-        \Log::info("Purging logs older than: " . $cutoffDate);
+        \Log::info('Purging logs older than: '.$cutoffDate);
 
         // Count records that will be deleted
         $recordsToDelete = RequestLog::where('created_at', '<', $cutoffDate)->count();
@@ -606,7 +607,7 @@ class RequestLoggerController extends Controller
         try {
             Cache::flush();
         } catch (\Exception $e) {
-            \Log::warning("Could not flush entire cache: " . $e->getMessage());
+            \Log::warning('Could not flush entire cache: '.$e->getMessage());
         }
 
         return response()->json([
@@ -615,8 +616,8 @@ class RequestLoggerController extends Controller
             'details' => [
                 'expected_count' => $recordsToDelete,
                 'actual_count' => $count,
-                'cutoff_date' => $cutoffDate
-            ]
+                'cutoff_date' => $cutoffDate,
+            ],
         ]);
     }
 
@@ -625,7 +626,7 @@ class RequestLoggerController extends Controller
      */
     protected function exportToCSV($logs)
     {
-        $filename = 'request_logs_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        $filename = 'request_logs_'.now()->format('Y-m-d_H-i-s').'.csv';
 
         return response()->streamDownload(function () use ($logs) {
             $file = fopen('php://output', 'w');
@@ -634,7 +635,7 @@ class RequestLoggerController extends Controller
             fputcsv($file, [
                 'ID', 'Method', 'Path', 'Full URL', 'IP Address',
                 'User Agent', 'Response Status', 'Response Time (ms)',
-                'Created At', 'Input Params', 'Headers'
+                'Created At', 'Input Params', 'Headers',
             ]);
 
             // Write log rows
@@ -650,14 +651,14 @@ class RequestLoggerController extends Controller
                     $log->response_time,
                     $log->created_at,
                     json_encode($log->input_params),
-                    json_encode($log->headers)
+                    json_encode($log->headers),
                 ]);
             });
 
             fclose($file);
         }, $filename, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=$filename"
+            'Content-Disposition' => "attachment; filename=$filename",
         ]);
     }
 
@@ -666,10 +667,10 @@ class RequestLoggerController extends Controller
      */
     protected function exportToJSON($logs)
     {
-        $filename = 'request_logs_' . now()->format('Y-m-d_H-i-s') . '.json';
+        $filename = 'request_logs_'.now()->format('Y-m-d_H-i-s').'.json';
 
         return response()->json($logs)->withHeaders([
-            'Content-Disposition' => "attachment; filename=$filename"
+            'Content-Disposition' => "attachment; filename=$filename",
         ]);
     }
 
@@ -682,7 +683,7 @@ class RequestLoggerController extends Controller
         $format = $request->input('format', 'csv');
         $validFormats = ['csv', 'json'];
 
-        if (!in_array($format, $validFormats)) {
+        if (! in_array($format, $validFormats)) {
             return response()->json(['error' => 'Invalid export format'], 400);
         }
 

@@ -2,13 +2,13 @@
 
 namespace MagicLog\RequestLogger\Controllers;
 
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use MagicLog\RequestLogger\Models\BannedIp;
 use MagicLog\RequestLogger\Models\RequestLog;
-use Carbon\Carbon;
-use Carbon\CarbonPeriod;
 
 class SecurityAnalyticsController extends Controller
 {
@@ -43,7 +43,7 @@ class SecurityAnalyticsController extends Controller
      */
     protected function getStartDate($timeRange)
     {
-        return match($timeRange) {
+        return match ($timeRange) {
             'day' => Carbon::now()->subDay(),
             'week' => Carbon::now()->subWeek(),
             'month' => Carbon::now()->subMonth(),
@@ -66,7 +66,7 @@ class SecurityAnalyticsController extends Controller
 
         // Count total attacks detected since start date
         $attacksDetected = RequestLog::where('created_at', '>=', $startDate)
-            ->whereIn('ip_address', function($query) {
+            ->whereIn('ip_address', function ($query) {
                 $query->select('ip_address')->from('banned_ips');
             })
             ->count();
@@ -76,7 +76,7 @@ class SecurityAnalyticsController extends Controller
 
         // Get top attack methods
         $topMethods = RequestLog::where('created_at', '>=', $startDate)
-            ->whereIn('ip_address', function($query) {
+            ->whereIn('ip_address', function ($query) {
                 $query->select('ip_address')->from('banned_ips');
             })
             ->select('method', DB::raw('count(*) as count'))
@@ -109,7 +109,7 @@ class SecurityAnalyticsController extends Controller
 
         // Get attacks per time period
         $attackData = RequestLog::where('created_at', '>=', $startDate)
-            ->whereIn('ip_address', function($query) {
+            ->whereIn('ip_address', function ($query) {
                 $query->select('ip_address')->from('banned_ips');
             })
             ->select(DB::raw("DATE_FORMAT(created_at, '{$groupByFormat}') as date"), DB::raw('count(*) as attacks'))
@@ -151,7 +151,7 @@ class SecurityAnalyticsController extends Controller
     protected function getTopAttackPaths($startDate)
     {
         return RequestLog::where('created_at', '>=', $startDate)
-            ->whereIn('ip_address', function($query) {
+            ->whereIn('ip_address', function ($query) {
                 $query->select('ip_address')->from('banned_ips');
             })
             ->select('path', DB::raw('count(*) as count'))
@@ -189,7 +189,7 @@ class SecurityAnalyticsController extends Controller
 
         // Get attack counts by day of week and hour
         $attackData = RequestLog::where('created_at', '>=', $startDate)
-            ->whereIn('ip_address', function($query) {
+            ->whereIn('ip_address', function ($query) {
                 $query->select('ip_address')->from('banned_ips');
             })
             ->select(
@@ -225,7 +225,7 @@ class SecurityAnalyticsController extends Controller
             ];
         }
 
-        usort($data, function($a, $b) {
+        usort($data, function ($a, $b) {
             return $b['count'] <=> $a['count'];
         });
 
@@ -237,9 +237,9 @@ class SecurityAnalyticsController extends Controller
      */
     protected function getRecentAttacks()
     {
-        return RequestLog::whereIn('ip_address', function($query) {
-                $query->select('ip_address')->from('banned_ips');
-            })
+        return RequestLog::whereIn('ip_address', function ($query) {
+            $query->select('ip_address')->from('banned_ips');
+        })
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->limit(15)
@@ -253,7 +253,7 @@ class SecurityAnalyticsController extends Controller
     {
         $daysAgo = Carbon::now()->diffInDays($startDate);
 
-        return match(true) {
+        return match (true) {
             $daysAgo <= 2 => '1 hour',
             $daysAgo <= 14 => '1 day',
             $daysAgo <= 90 => '1 week',
@@ -268,7 +268,7 @@ class SecurityAnalyticsController extends Controller
     {
         $daysAgo = Carbon::now()->diffInDays($startDate);
 
-        return match(true) {
+        return match (true) {
             $daysAgo <= 2 => 'Y-m-d H:00',
             $daysAgo <= 31 => 'Y-m-d',
             $daysAgo <= 365 => 'Y-m',
@@ -283,7 +283,7 @@ class SecurityAnalyticsController extends Controller
     {
         $daysAgo = Carbon::now()->diffInDays($startDate);
 
-        return match(true) {
+        return match (true) {
             $daysAgo <= 2 => '%Y-%m-%d %H:00',
             $daysAgo <= 31 => '%Y-%m-%d',
             $daysAgo <= 365 => '%Y-%m',

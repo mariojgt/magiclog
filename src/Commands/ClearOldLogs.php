@@ -3,8 +3,8 @@
 namespace MagicLog\RequestLogger\Commands;
 
 use Illuminate\Console\Command;
-use MagicLog\RequestLogger\Models\RequestLog;
 use MagicLog\RequestLogger\Models\BannedIp;
+use MagicLog\RequestLogger\Models\RequestLog;
 
 class ClearOldLogs extends Command
 {
@@ -34,6 +34,7 @@ class ClearOldLogs extends Command
 
         if ($days < 1) {
             $this->error('Days must be at least 1');
+
             return 1;
         }
 

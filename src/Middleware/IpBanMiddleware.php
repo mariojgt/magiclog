@@ -44,7 +44,7 @@ class IpBanMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         // Skip if IP banning is disabled (quick check first)
-        if (!config('request-logger.ip_ban_enabled', true)) {
+        if (! config('request-logger.ip_ban_enabled', true)) {
             return $next($request);
         }
 
@@ -56,7 +56,7 @@ class IpBanMiddleware
         }
 
         // Check if IP is already banned (cache check is fast)
-        if (Cache::has($this->banCachePrefix . $ip)) {
+        if (Cache::has($this->banCachePrefix.$ip)) {
             return $this->handleBannedRequest($request);
         }
 
@@ -69,11 +69,11 @@ class IpBanMiddleware
 
             if ($banData) {
                 Cache::put(
-                    $this->banCachePrefix . $ip,
+                    $this->banCachePrefix.$ip,
                     [
                         'banned_at' => $banData->created_at->toIso8601String(),
                         'expires_at' => $banData->banned_until->toIso8601String(),
-                        'reason' => $banData->reason
+                        'reason' => $banData->reason,
                     ],
                     $banData->banned_until
                 );
@@ -94,8 +94,9 @@ class IpBanMiddleware
             Log::warning("IP banned due to obvious attack pattern: {$ip}", [
                 'path' => $path,
                 'method' => $request->method(),
-                'user_agent' => $request->userAgent()
+                'user_agent' => $request->userAgent(),
             ]);
+
             return $this->handleBannedRequest($request);
         }
 
@@ -105,8 +106,9 @@ class IpBanMiddleware
             Log::warning("IP banned due to attack pattern: {$ip}", [
                 'path' => $path,
                 'method' => $request->method(),
-                'user_agent' => $request->userAgent()
+                'user_agent' => $request->userAgent(),
             ]);
+
             return $this->handleBannedRequest($request);
         }
 
@@ -114,11 +116,11 @@ class IpBanMiddleware
         $this->incrementRequestCount($ip);
 
         // Track paths (only if not already at limit)
-        $key = $this->requestCountPrefix . $ip;
-        $pathsKey = $this->requestCountPrefix . $ip . ':paths';
+        $key = $this->requestCountPrefix.$ip;
+        $pathsKey = $this->requestCountPrefix.$ip.':paths';
         $threshold = config('request-logger.rate_limit_threshold', 20);
 
-        if (!Cache::has($key) || Cache::get($key) < $threshold) {
+        if (! Cache::has($key) || Cache::get($key) < $threshold) {
             $this->trackPaths($ip, $path);
         }
 
@@ -127,8 +129,9 @@ class IpBanMiddleware
             $this->banIp($ip, 1, true); // Ban for 1 minute
             Log::warning("IP banned due to rate limiting: {$ip}", [
                 'request_count' => Cache::get($key),
-                'window' => config('request-logger.rate_limit_window', 30) . 's'
+                'window' => config('request-logger.rate_limit_window', 30).'s',
             ]);
+
             return $this->handleBannedRequest($request);
         }
 
@@ -188,7 +191,7 @@ class IpBanMiddleware
     protected function handleBannedRequest(Request $request): Response
     {
         // Check if misleading responses are enabled
-        if (!config('request-logger.enable_misleading_responses', true)) {
+        if (! config('request-logger.enable_misleading_responses', true)) {
             // Standard block response
             return response()->json([
                 'status' => 'error',
@@ -197,7 +200,7 @@ class IpBanMiddleware
         }
 
         // Add SC prefix to track bots/scanners
-        $scPrefix = "SC" . rand(1000, 9999) . ": ";
+        $scPrefix = 'SC'.rand(1000, 9999).': ';
 
         // Get IP and request info for tracking
         $ip = $request->ip();
@@ -223,31 +226,32 @@ class IpBanMiddleware
                     'code' => 403,
                     'body' => [
                         'status' => 'error',
-                        'message' => $scPrefix . 'Access denied. Your IP has been logged.',
+                        'message' => $scPrefix.'Access denied. Your IP has been logged.',
                         'request_id' => $this->generateRandomString(12),
-                    ]
+                    ],
                 ],
                 // 429 - Too Many Requests
                 [
                     'code' => 429,
                     'body' => [
                         'status' => 'error',
-                        'message' => $scPrefix . 'Rate limit exceeded',
+                        'message' => $scPrefix.'Rate limit exceeded',
                         'retry_after' => rand(3600, 86400), // 1-24 hours in seconds
-                    ]
+                    ],
                 ],
                 // 503 - Service Unavailable
                 [
                     'code' => 503,
                     'body' => [
                         'status' => 'error',
-                        'message' => $scPrefix . 'Service temporarily unavailable',
+                        'message' => $scPrefix.'Service temporarily unavailable',
                         'retry_after' => rand(300, 1800), // 5-30 minutes
-                    ]
-                ]
+                    ],
+                ],
             ];
 
             $randIndex = array_rand($errorTypes);
+
             return response()->json($errorTypes[$randIndex]['body'], $errorTypes[$randIndex]['code']);
         } elseif ($hitCount <= 5) {
             // Next few hits - make them wait with slow responses
@@ -255,7 +259,7 @@ class IpBanMiddleware
 
             return response()->json([
                 'status' => 'error',
-                'message' => $scPrefix . 'Request timed out',
+                'message' => $scPrefix.'Request timed out',
                 'request_id' => $this->generateRandomString(16),
             ], 504); // Gateway Timeout
         } elseif ($hitCount <= 10) {
@@ -265,11 +269,11 @@ class IpBanMiddleware
                 function () use ($scPrefix) {
                     $corruptJson = '{
                         "status": "error",
-                        "message": "' . $scPrefix . 'Internal server error",
+                        "message": "'.$scPrefix.'Internal server error",
                         "debug';
 
                     return new Response($corruptJson, 500, [
-                        'Content-Type' => 'application/json'
+                        'Content-Type' => 'application/json',
                     ]);
                 },
 
@@ -283,13 +287,14 @@ class IpBanMiddleware
                 function () use ($scPrefix) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => $scPrefix . '<div class="error">Server configuration error</div>',
-                        'trace' => '<a href="#">View stack trace</a>'
+                        'message' => $scPrefix.'<div class="error">Server configuration error</div>',
+                        'trace' => '<a href="#">View stack trace</a>',
                     ], 500);
-                }
+                },
             ];
 
             $randFunction = array_rand($responses);
+
             return $responses[$randFunction]();
         } else {
             // Many hits - increasingly useless/discouraging responses
@@ -306,7 +311,7 @@ class IpBanMiddleware
                 function () use ($scPrefix) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => $scPrefix . 'Resource not found'
+                        'message' => $scPrefix.'Resource not found',
                     ], 404);
                 },
 
@@ -323,7 +328,7 @@ class IpBanMiddleware
                 function () use ($scPrefix) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => $scPrefix . 'Authentication required',
+                        'message' => $scPrefix.'Authentication required',
                     ], 401);
                 },
 
@@ -331,14 +336,15 @@ class IpBanMiddleware
                 function () use ($scPrefix, $ip) {
                     return response()->json([
                         'status' => 'warning',
-                        'message' => $scPrefix . 'Scanning behavior detected',
+                        'message' => $scPrefix.'Scanning behavior detected',
                         'source_ip' => $ip,
-                        'actions_taken' => 'IP reported to admin'
+                        'actions_taken' => 'IP reported to admin',
                     ], 403);
-                }
+                },
             ];
 
             $randFunction = array_rand($uselessResponses);
+
             return $uselessResponses[$randFunction]();
         }
     }
@@ -368,6 +374,7 @@ class IpBanMiddleware
         $parts = explode('.', $ip);
         if (count($parts) === 4) { // IPv4
             $parts[3] = 'xxx';
+
             return implode('.', $parts);
         }
 
@@ -375,7 +382,8 @@ class IpBanMiddleware
         if (strpos($ip, ':') !== false) {
             $parts = explode(':', $ip);
             $half = ceil(count($parts) / 2);
-            return implode(':', array_slice($parts, 0, $half)) . ':xxxx:xxxx';
+
+            return implode(':', array_slice($parts, 0, $half)).':xxxx:xxxx';
         }
 
         return $ip;
@@ -418,7 +426,7 @@ class IpBanMiddleware
      */
     protected function incrementRequestCount(string $ip): void
     {
-        $key = $this->requestCountPrefix . $ip;
+        $key = $this->requestCountPrefix.$ip;
         $window = config('request-logger.rate_limit_window', 30); // Window in seconds
 
         if (Cache::has($key)) {
@@ -433,12 +441,12 @@ class IpBanMiddleware
      */
     protected function trackPaths(string $ip, string $path): void
     {
-        $pathsKey = $this->requestCountPrefix . $ip . ':paths';
+        $pathsKey = $this->requestCountPrefix.$ip.':paths';
         $window = config('request-logger.rate_limit_window', 30);
 
         $paths = Cache::get($pathsKey, []);
 
-        if (!in_array($path, $paths)) {
+        if (! in_array($path, $paths)) {
             $paths[] = $path;
             Cache::put($pathsKey, $paths, now()->addSeconds($window));
         }
@@ -449,9 +457,9 @@ class IpBanMiddleware
      */
     protected function shouldRateLimit(string $ip): bool
     {
-        $key = $this->requestCountPrefix . $ip;
+        $key = $this->requestCountPrefix.$ip;
         $threshold = config('request-logger.rate_limit_threshold', 50);
-        $pathsKey = $this->requestCountPrefix . $ip . ':paths';
+        $pathsKey = $this->requestCountPrefix.$ip.':paths';
 
         // Check if request count exceeds threshold
         if (Cache::has($key) && Cache::get($key) > $threshold) {
@@ -485,18 +493,18 @@ class IpBanMiddleware
         $banData = [
             'banned_at' => now()->toIso8601String(),
             'expires_at' => now()->addHours($hours)->toIso8601String(),
-            'reason' => 'Suspicious activity detected'
+            'reason' => 'Suspicious activity detected',
         ];
 
         // Store in cache
-        Cache::put($this->banCachePrefix . $ip, $banData, now()->addHours($hours));
+        Cache::put($this->banCachePrefix.$ip, $banData, now()->addHours($hours));
 
         // Store in database for permanent record
         try {
             BannedIp::banIp($ip, 'Suspicious activity detected', $hours, [
                 'time' => now()->toIso8601String(),
-                'request_count' => Cache::get($this->requestCountPrefix . $ip, 0),
-                'paths' => Cache::get($this->requestCountPrefix . $ip . ':paths', []),
+                'request_count' => Cache::get($this->requestCountPrefix.$ip, 0),
+                'paths' => Cache::get($this->requestCountPrefix.$ip.':paths', []),
             ]);
 
             // Check if Admin class exists before trying to notify admins
@@ -506,7 +514,8 @@ class IpBanMiddleware
                     $firstAdmin = Admin::first();
 
                     if ($firstAdmin) {
-                        $message = "IP address {$ip} has been banned for suspicious activity.";
+                        $message = "IP {$this->obfuscateIp($ip)} has been banned for {$hours} hours due to suspicious activity. Reason: {$banData['reason']}, Paths accessed: ".implode(', ', Cache::get($this->requestCountPrefix.$ip.':paths', []));
+
                         $firstAdmin->notify(new GenericNotification(
                             'IP Banned',
                             'warning',
@@ -523,7 +532,7 @@ class IpBanMiddleware
         } catch (\Exception $e) {
             Log::error("Failed to log banned IP to database: {$e->getMessage()}", [
                 'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }
@@ -629,7 +638,7 @@ class IpBanMiddleware
             $this->suspiciousExtensions = Cache::remember('ip_ban_extensions', $this->patternCacheTime, function () {
                 return [
                     '.bak', '.backup', '.swp', '.old', '.save', '.~ ', '.env',
-                    '.conf', '.config', '.cfg', '.ini', '.log', '.sql', '.sh', '.bash'
+                    '.conf', '.config', '.cfg', '.ini', '.log', '.sql', '.sh', '.bash',
                 ];
             });
         }
@@ -650,7 +659,7 @@ class IpBanMiddleware
 
         // Check for SQL injection patterns in query params
         $params = $request->query();
-        if (!empty($params)) {
+        if (! empty($params)) {
             foreach ($params as $param) {
                 if (is_string($param) && $this->containsSqlInjection($param)) {
                     return true;

@@ -4,10 +4,9 @@ namespace MagicLog\RequestLogger\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use MagicLog\RequestLogger\Models\BannedIp;
-use MagicLog\RequestLogger\Models\RequestLog;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use MagicLog\RequestLogger\Models\BannedIp;
 
 class BannedIpController extends Controller
 {
@@ -28,23 +27,23 @@ class BannedIpController extends Controller
         if ($request->has('search')) {
             $search = $request->search;
             $query->where('ip_address', 'like', "%{$search}%")
-                  ->orWhere('reason', 'like', "%{$search}%");
+                ->orWhere('reason', 'like', "%{$search}%");
         }
 
         // Get stats for displaying in view
         $bannedStats = [
             'total' => BannedIp::count(),
             'active' => BannedIp::where('banned_until', '>', now())->count(),
-            'repeat' => BannedIp::where('ban_count', '>', 1)->count()
+            'repeat' => BannedIp::where('ban_count', '>', 1)->count(),
         ];
 
         // Paginate results
         $bannedIps = $query->orderBy('banned_until', 'desc')
-                          ->paginate(15);
+            ->paginate(15);
 
         return view('request-logger::bannedIps.index', [
             'bannedIps' => $bannedIps,
-            'bannedStats' => $bannedStats
+            'bannedStats' => $bannedStats,
         ]);
     }
 
@@ -56,13 +55,13 @@ class BannedIpController extends Controller
         $validator = Validator::make($request->all(), [
             'ip_address' => 'required|ip',
             'reason' => 'nullable|string|max:255',
-            'duration' => 'required|integer|min:1'
+            'duration' => 'required|integer|min:1',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -74,16 +73,16 @@ class BannedIpController extends Controller
         $bannedIp = BannedIp::banIp($ip, $reason, $hours);
 
         // Add to cache
-        Cache::put('ip_ban:' . $ip, [
+        Cache::put('ip_ban:'.$ip, [
             'banned_at' => now()->toIso8601String(),
             'expires_at' => now()->addHours($hours)->toIso8601String(),
-            'reason' => $reason
+            'reason' => $reason,
         ], now()->addHours($hours));
 
         return response()->json([
             'success' => true,
             'message' => "IP {$ip} has been banned successfully",
-            'bannedIp' => $bannedIp
+            'bannedIp' => $bannedIp,
         ]);
     }
 
@@ -95,13 +94,13 @@ class BannedIpController extends Controller
         $success = BannedIp::unbanIp($ip);
 
         // Also clear from cache
-        Cache::forget('ip_ban:' . $ip);
+        Cache::forget('ip_ban:'.$ip);
 
         return response()->json([
             'success' => $success,
             'message' => $success
                 ? "IP {$ip} has been unbanned successfully"
-                : "IP {$ip} was not found or already unbanned"
+                : "IP {$ip} was not found or already unbanned",
         ]);
     }
 
@@ -114,7 +113,7 @@ class BannedIpController extends Controller
             'active' => BannedIp::where('banned_until', '>', now())->get(),
             'total' => BannedIp::count(),
             'active_count' => BannedIp::where('banned_until', '>', now())->count(),
-            'repeat_offenders' => BannedIp::where('ban_count', '>', 1)->count()
+            'repeat_offenders' => BannedIp::where('ban_count', '>', 1)->count(),
         ]);
     }
 
@@ -125,7 +124,7 @@ class BannedIpController extends Controller
     {
         $ip = $request->input('ip');
 
-        if (!$ip) {
+        if (! $ip) {
             return response()->json(['success' => false, 'message' => 'IP is required'], 400);
         }
 
@@ -133,17 +132,17 @@ class BannedIpController extends Controller
 
         if ($success) {
             // Also clear from cache
-            Cache::forget('ip_ban:' . $ip);
+            Cache::forget('ip_ban:'.$ip);
 
             return response()->json([
                 'success' => true,
-                'message' => "IP {$ip} has been unbanned successfully"
+                'message' => "IP {$ip} has been unbanned successfully",
             ]);
         }
 
         return response()->json([
             'success' => false,
-            'message' => "IP {$ip} was not found or already unbanned"
+            'message' => "IP {$ip} was not found or already unbanned",
         ]);
     }
 }

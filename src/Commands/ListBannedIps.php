@@ -34,7 +34,7 @@ class ListBannedIps extends Command
         // Build query based on options
         $query = BannedIp::query();
 
-        if (!$showAll) {
+        if (! $showAll) {
             $query->where('banned_until', '>', now());
         }
 
@@ -46,6 +46,7 @@ class ListBannedIps extends Command
 
         if ($bannedIps->isEmpty()) {
             $this->info('No banned IPs found.');
+
             return 0;
         }
 
@@ -71,8 +72,8 @@ class ListBannedIps extends Command
             return $ban->banned_until->isFuture();
         })->count();
 
-        $this->info('Total banned IPs: ' . $bannedIps->count());
-        $this->info('Active bans: ' . $activeCount);
+        $this->info('Total banned IPs: '.$bannedIps->count());
+        $this->info('Active bans: '.$activeCount);
 
         return 0;
     }
